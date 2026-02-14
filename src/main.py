@@ -13,7 +13,11 @@ def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        # When running from src directory, look in parent directory for assets
+        if os.path.basename(os.getcwd()) == "src":
+            base_path = os.path.abspath("..")
+        else:
+            base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
 
@@ -152,7 +156,7 @@ def main_menu():
 
         elapsed_time = (pygame.time.get_ticks() - animation_start_time) / 1000
         scale_factor = 1 + 0.05 * math.sin(elapsed_time * 2 * math.pi)  # Slight scaling
-        scaled_font = pygame.font.Font("assets/fonts/turok.ttf", int(100 * scale_factor))
+        scaled_font = pygame.font.Font(resource_path("assets/fonts/turok.ttf"), int(100 * scale_factor))
 
         title_text = "STREET FIGHTER"
         colors = [BLUE, GREEN, YELLOW]
@@ -168,12 +172,15 @@ def main_menu():
         button_height = 60
         button_spacing = 30
 
-        start_button_y = SCREEN_HEIGHT // 2 - (button_height + button_spacing) * 1.5 + 50
-        scores_button_y = SCREEN_HEIGHT // 2 - (button_height + button_spacing) * 0.5 + 50
-        exit_button_y = SCREEN_HEIGHT // 2 + (button_height + button_spacing) * 0.5 + 50
+        start_button_y = SCREEN_HEIGHT // 2 - (button_height + button_spacing) * 2 + 50
+        controls_button_y = SCREEN_HEIGHT // 2 - (button_height + button_spacing) * 1 + 50
+        scores_button_y = SCREEN_HEIGHT // 2 + (button_height + button_spacing) * 0 + 50
+        exit_button_y = SCREEN_HEIGHT // 2 + (button_height + button_spacing) * 1 + 50
 
         start_button = draw_button("START GAME", menu_font, BLACK, GREEN, SCREEN_WIDTH // 2 - button_width // 2,
                                    start_button_y, button_width, button_height)
+        controls_button = draw_button("CONTROLS", menu_font, BLACK, GREEN, SCREEN_WIDTH // 2 - button_width // 2,
+                                     controls_button_y, button_width, button_height)
         scores_button = draw_button("SCORES", menu_font, BLACK, GREEN, SCREEN_WIDTH // 2 - button_width // 2,
                                     scores_button_y, button_width, button_height)
         exit_button = draw_button("EXIT", menu_font, BLACK, GREEN, SCREEN_WIDTH // 2 - button_width // 2,
@@ -186,6 +193,8 @@ def main_menu():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if start_button.collidepoint(event.pos):
                     return "START"
+                if controls_button.collidepoint(event.pos):
+                    return "CONTROLS"
                 if scores_button.collidepoint(event.pos):
                     return "SCORES"
                 if exit_button.collidepoint(event.pos):
@@ -203,7 +212,7 @@ def scores_screen():
         scores_title = "SCORES"
         draw_text(scores_title, menu_font_title, RED, SCREEN_WIDTH // 2 - menu_font_title.size(scores_title)[0] // 2, 50)
 
-        score_font_large = pygame.font.Font("assets/fonts/turok.ttf", 60)  # Increased size for scores
+        score_font_large = pygame.font.Font(resource_path("assets/fonts/turok.ttf"), 60)  # Increased size for scores
         p1_text = f"P1: {score[0]}"
         p2_text = f"P2: {score[1]}"
         shadow_offset = 5
@@ -232,6 +241,58 @@ def scores_screen():
         clock.tick(FPS)
 
 
+def controls_screen():
+    while True:
+        draw_bg(bg_image)
+
+        # Title
+        controls_title = "CONTROLS GUIDE"
+        draw_text(controls_title, menu_font_title, GREEN, SCREEN_WIDTH // 2 - menu_font_title.size(controls_title)[0] // 2, 50)
+        
+        # Controls information
+        controls_font = pygame.font.Font(resource_path("assets/fonts/turok.ttf"), 35)
+        small_font = pygame.font.Font(resource_path("assets/fonts/turok.ttf"), 25)
+        
+        # Movement controls
+        draw_text("MOVEMENT:", controls_font, WHITE, 100, 150)
+        draw_text("A - Move Left", small_font, BLUE, 100, 190)
+        draw_text("D - Move Right", small_font, BLUE, 100, 220)
+        draw_text("W - Jump", small_font, BLUE, 100, 250)
+        
+        # Attack controls
+        draw_text("ATTACKS:", controls_font, WHITE, 100, 300)
+        draw_text("R - Close Range Attack", small_font, RED, 100, 340)
+        draw_text("T - Long Range Attack", small_font, RED, 100, 370)
+        
+        # Game info
+        draw_text("GAME INFO:", controls_font, WHITE, 500, 150)
+        draw_text("• You play as the WARRIOR (left)", small_font, YELLOW, 500, 190)
+        draw_text("• Computer plays as WIZARD (right)", small_font, (255, 100, 0), 500, 220)
+        draw_text("• Each attack deals 10 damage", small_font, WHITE, 500, 250)
+        draw_text("• First to lose all health loses", small_font, WHITE, 500, 280)
+        
+        # Tips
+        draw_text("TIPS:", controls_font, WHITE, 500, 330)
+        draw_text("• Jump to avoid attacks", small_font, GREEN, 500, 370)
+        draw_text("• Use close attacks when near", small_font, GREEN, 500, 400)
+        draw_text("• Use long attacks at distance", small_font, GREEN, 500, 430)
+        draw_text("• Watch for AI patterns!", small_font, GREEN, 500, 460)
+        
+        # Return button
+        return_button = draw_button("RETURN TO MAIN MENU", menu_font, BLACK, GREEN, SCREEN_WIDTH // 2 - 220, 550, 500, 50)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if return_button.collidepoint(event.pos):
+                    return
+
+        pygame.display.update()
+        clock.tick(FPS)
+
+
 def reset_game():
     global fighter_1, fighter_2
     fighter_1 = Fighter(1, 200, 310, False, WARRIOR_DATA, warrior_sheet, WARRIOR_ANIMATION_STEPS, sword_fx)
@@ -246,7 +307,7 @@ def draw_health_bar(health, x, y):
 
 
 def countdown():
-    countdown_font = pygame.font.Font("assets/fonts/turok.ttf", 100)
+    countdown_font = pygame.font.Font(resource_path("assets/fonts/turok.ttf"), 100)
     countdown_texts = ["3", "2", "1", "FIGHT!"]
 
     for text in countdown_texts:
@@ -276,6 +337,12 @@ def game_loop():
 
         draw_text(f"P1: {score[0]}", score_font, RED, 20, 20)
         draw_text(f"P2: {score[1]}", score_font, RED, SCREEN_WIDTH - 220, 20)
+        
+        # Add player identification labels
+        player_label_font = pygame.font.Font(resource_path("assets/fonts/turok.ttf"), 25)
+        draw_text("USER", player_label_font, BLUE, 20, 85)
+        draw_text("COMPUTER", player_label_font, (255, 100, 0), SCREEN_WIDTH - 220, 85)
+        
         draw_health_bar(fighter_1.health, 20, 50)
         draw_health_bar(fighter_2.health, SCREEN_WIDTH - 220, 50)
 
@@ -320,5 +387,7 @@ while True:
 
     if menu_selection == "START":
         game_loop()
+    elif menu_selection == "CONTROLS":
+        controls_screen()
     elif menu_selection == "SCORES":
         scores_screen()
